@@ -1,9 +1,22 @@
+import base64
+from pathlib import Path
+
+from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from apps.goods.models import Good, GoodImage
 from apps.catalog.models import CampusLocation, Category 
 
 User = get_user_model()
+
+# Generic placeholder image shared across Goods and Services seed data,
+# so seeding doesn't depend on network access (GoodImage.image / ServiceImage.image
+# are real ImageFields now, not URLs, per Step 2a). Lives as a static asset in
+# apps/marketplace so it also doubles as an <img> fallback in templates.
+_PLACEHOLDER_PATH = (
+    Path(__file__).resolve().parent.parent.parent.parent.parent
+    / "apps" / "marketplace" / "static" / "marketplace" / "img" / "placeholder.png"
+)
 
 class Command(BaseCommand):
     help = 'Seeds the database with initial marketplace dummy data'
@@ -43,9 +56,11 @@ class Command(BaseCommand):
 
         # 4. Add an Image to the Listing
         if created:
-            GoodImage.objects.create(
-                good=good, 
-                image_url='https://dummyimage.com/600x400/000/fff&text=Mini+Fridge'
+            good_image = GoodImage(good=good)
+            good_image.image.save(
+                'mini_fridge_placeholder.png',
+                ContentFile(_PLACEHOLDER_PATH.read_bytes()),
+                save=True,
             )
 
         self.stdout.write(self.style.SUCCESS('Successfully seeded the database!'))

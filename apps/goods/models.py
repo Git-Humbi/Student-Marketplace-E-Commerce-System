@@ -90,9 +90,9 @@ class GoodImage(models.Model):
 
     good = models.ForeignKey(Good, on_delete=models.CASCADE, related_name='images')
 
-    # URLField is slightly safer than CharField here as it validates URL formatting
-
-    image_url = models.URLField(max_length=500)
+    # Real file upload (switched from URLField per Step 2a) so sellers can
+    # upload an actual photo during the live demo instead of pasting a link.
+    image = models.ImageField(upload_to='goods/%Y/%m/')
 
     uploaded_at = models.DateTimeField(auto_now_add=True)
 

@@ -4,16 +4,19 @@ from .models import Good, GoodImage
 class GoodImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = GoodImage
-        fields = ['id', 'image_url', 'uploaded_at']
+        fields = ['id', 'image', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
 
 class GoodSerializer(serializers.ModelSerializer):
     # Read-only nested representation of images
     images = GoodImageSerializer(many=True, read_only=True)
-    
-    # Write-only field to accept new image URLs when creating/updating a Good
+
+    # Write-only field to accept new image files when creating/updating a Good.
+    # NOTE: this changed from URLField -> ImageField because GoodImage.image_url
+    # was switched to a real ImageField upload (Step 2a, MVP sprint). Not wired
+    # up to a live endpoint yet since DRF write paths are deferred post-demo.
     upload_images = serializers.ListField(
-        child=serializers.URLField(max_length=500),
+        child=serializers.ImageField(),
         write_only=True,
         required=False
     )
@@ -49,15 +52,15 @@ class GoodSerializer(serializers.ModelSerializer):
         upload_images = validated_data.pop('upload_images', [])
         good = Good.objects.create(**validated_data)
         
-        for url in upload_images:
-            GoodImage.objects.create(good=good, image_url=url)
+        for image_file in upload_images:
+            GoodImage.objects.create(good=good, image=image_file)
             
         return good
 
     def update(self, instance, validated_data):
         upload_images = validated_data.pop('upload_images', [])
         
-        for url in upload_images:
-            GoodImage.objects.create(good=instance, image_url=url)
+        for image_file in upload_images:
+            GoodImage.objects.create(good=instance, image=image_file)
             
         return super().update(instance, validated_data)
